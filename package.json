@@ -1,0 +1,36 @@
+{
+  "name": "bb-plugin-thread-widget",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A compact window mode for recent threads and quick replies.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kr3t3n/bb-plugin-thread-widget.git"
+  },
+  "homepage": "https://github.com/kr3t3n/bb-plugin-thread-widget#readme",
+  "engines": {
+    "bb": ">=0.46.0",
+    "bbPluginSdk": ">=0.4.6"
+  },
+  "bb": {
+    "name": "Thread widget",
+    "description": "Turn the bb window into a small list of active threads and reply without leaving it.",
+    "branding": {
+      "icon": "MessageSquare"
+    },
+    "server": "./server.ts",
+    "app": "./app.tsx"
+  },
+  "scripts": {
+    "build": "bb plugin build",
+    "test": "node --experimental-strip-types --test src/inbox.test.ts"
+  },
+  "devDependencies": {
+    "@get-bb/plugin-sdk": "0.4.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
