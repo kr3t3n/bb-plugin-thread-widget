@@ -9,7 +9,7 @@ bb plugin install https://github.com/kr3t3n/bb-plugin-thread-widget
 bb plugin enable thread-widget
 ```
 
-The rail button under the usage meters, or the Thread widget footer action, switches the mode on. Exit returns to the normal bb layout. In a desktop app built from gap-bb, the window shrinks to 360 pixels wide, and Exit puts back the earlier width. The official bb app has no call to resize the window, so there you resize it yourself.
+The rail button under the usage meters, or the Thread widget footer action, switches the mode on. Exit returns to the normal bb layout. In bb installed as a PWA, the window shrinks to 360 pixels wide, and Exit puts back the earlier width. A desktop app built from gap-bb does the same through its setWindowWidth call. A browser tab and the official desktop app cannot resize the window, so there you resize it yourself.
 
 The filter button in the header opens a dialog with filters for status, provider and label, and a sort control. A dot on the button shows that the filters differ from the defaults. By default the widget hides threads with the `automation` label. The widget keeps its own filter choices, apart from Sidebar Pro. The header starts right of bb's sidebar button and the macOS window buttons.
 
