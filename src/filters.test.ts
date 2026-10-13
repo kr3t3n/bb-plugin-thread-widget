@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_FILTERS, filterThreads, parseFilters, type SortableThread } from "./filters.ts";
+import { DEFAULT_FILTERS, filterThreads, parseFilters, pinnedThreads, type SortableThread } from "./filters.ts";
 
 function thread(patch: Partial<SortableThread> & Pick<SortableThread, "id">): SortableThread {
   return {
@@ -44,4 +44,15 @@ test("stored filters fall back to defaults for unknown values", () => {
   assert.equal(parsed.sort, "title_asc");
   assert.equal(parsed.labelMode, "only");
   assert.deepEqual(parseFilters("not json"), DEFAULT_FILTERS);
+});
+
+test("pinned threads keep bb's pin order and skip archived ones", () => {
+  const rows = [
+    { ...thread({ id: "b" }), isPinned: true, pinSortKey: "b" },
+    { ...thread({ id: "a" }), isPinned: true, pinSortKey: "a" },
+    { ...thread({ id: "x" }), isPinned: true, pinSortKey: null },
+    { ...thread({ id: "gone", isArchived: true }), isPinned: true, pinSortKey: "0" },
+    { ...thread({ id: "loose" }), isPinned: false, pinSortKey: null },
+  ];
+  assert.deepEqual(pinnedThreads(rows).map((r) => r.id), ["a", "b", "x"]);
 });

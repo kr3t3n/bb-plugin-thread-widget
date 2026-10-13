@@ -13,7 +13,7 @@ The rail button under the usage meters, or the Thread widget footer action, swit
 
 The filter button in the header opens a dialog with filters for status, provider and label, and a sort control. A dot on the button shows that the filters differ from the defaults. By default the widget hides threads with the `automation` label. The widget keeps its own filter choices, apart from Sidebar Pro. The header starts right of bb's sidebar button and the macOS window buttons.
 
-Threads that need a reply are marked Needs you and sort first. Each row starts with the provider icon and bb's status glyph, including the spinner while the agent is working. Right-click a row for the sidebar actions: open in split, copy the thread id or a link, mark read, pin, rename, archive, and delete.
+Pinned threads sit in a Pinned section at the top of the list, in bb's pin order. The section starts collapsed and remembers whether you opened it. The filters do not apply to it. While it is collapsed, a dot shows when a pinned thread needs you. Threads that need a reply are marked Needs you and sort first. Each row starts with the provider icon and bb's status glyph, including the spinner while the agent is working. Right-click a row for the sidebar actions: open in split, copy the thread id or a link, mark read, pin, rename, archive, and delete.
 
 Open a thread to read the session and reply. The composer is bb's own composer, so you can attach a file. Sending closes the session view and leaves the reply on the thread. Open in bb leaves the widget and shows that thread in the normal window.
 

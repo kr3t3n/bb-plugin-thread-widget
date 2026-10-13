@@ -19,6 +19,9 @@ import {
   DEFAULT_FILTERS,
   filterThreads,
   loadFilters,
+  loadPinnedOpen,
+  pinnedThreads,
+  savePinnedOpen,
   saveFilters,
   type LabelMode,
   type StatusFilter,
@@ -216,6 +219,7 @@ export function Widget() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [panelMode, setPanelMode] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(loadPinnedOpen);
   const panelRun = useRef<AbortController | null>(null);
   useEffect(() => () => panelRun.current?.abort(), []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
@@ -277,8 +281,15 @@ export function Widget() {
   if (!enabled) return null;
 
   const labelId = labels?.labels.find((label) => label.slug === filters.labelSlug)?.id ?? null;
-  const rows = filterThreads(threads, filters, labelId, labels?.labelIdsByThreadId ?? null);
-  const waiting = rows.filter(needsReply).length;
+  // Pinned threads have their own section at the top, so the list skips them.
+  const pinned = pinnedThreads(threads);
+  const rows = filterThreads(
+    threads.filter((thread) => !thread.isPinned),
+    filters,
+    labelId,
+    labels?.labelIdsByThreadId ?? null,
+  );
+  const waiting = rows.filter(needsReply).length + pinned.filter(needsReply).length;
   const open = threads.find((thread) => thread.id === openId) ?? null;
   const menuThread = menu === null ? null : (threads.find((thread) => thread.id === menu.id) ?? null);
 
@@ -325,6 +336,38 @@ export function Widget() {
   const openInBb = (threadId: string) => {
     actions.open(threadId);
     closeWidget();
+  };
+
+  const renderRow = (thread: (typeof threads)[number]) => {
+    if (renamingId === thread.id) {
+      return (
+        <form
+          key={thread.id}
+          className="thread-widget-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            const title = String(data.get("title") ?? "").trim();
+            setRenamingId(null);
+            if (title.length > 0) void actions.rename(thread.id, title);
+          }}
+        >
+          <input name="title" defaultValue={threadTitle(thread)} autoFocus aria-label="Thread title" />
+        </form>
+      );
+    }
+    return (
+      <ThreadRow
+        key={thread.id}
+        thread={thread as PluginSidebarThread}
+        providers={providers}
+        onOpen={() => openThread(thread.id)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setMenu({ id: thread.id, x: event.clientX, y: event.clientY });
+        }}
+      />
+    );
   };
 
   return (
@@ -413,38 +456,29 @@ export function Widget() {
           <div className="thread-widget-list">
             {status === "loading" && rows.length === 0 ? <p>Loading threads.</p> : null}
             {status === "error" ? <p>The thread list is unavailable.</p> : null}
-            {status === "ready" && rows.length === 0 ? <p>No active threads.</p> : null}
-            {rows.map((thread) => {
-              if (renamingId === thread.id) {
-                return (
-                  <form
-                    key={thread.id}
-                    className="thread-widget-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const data = new FormData(event.currentTarget);
-                      const title = String(data.get("title") ?? "").trim();
-                      setRenamingId(null);
-                      if (title.length > 0) void actions.rename(thread.id, title);
-                    }}
-                  >
-                    <input name="title" defaultValue={threadTitle(thread)} autoFocus aria-label="Thread title" />
-                  </form>
-                );
-              }
-              return (
-                <ThreadRow
-                  key={thread.id}
-                  thread={thread as PluginSidebarThread}
-                  providers={providers}
-                  onOpen={() => openThread(thread.id)}
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    setMenu({ id: thread.id, x: event.clientX, y: event.clientY });
+            {status === "ready" && rows.length === 0 && pinned.length === 0 ? <p>No active threads.</p> : null}
+            {pinned.length > 0 ? (
+              <section className="thread-widget-pinned">
+                <button
+                  type="button"
+                  className="thread-widget-pinned-toggle"
+                  aria-expanded={pinnedOpen}
+                  onClick={() => {
+                    setPinnedOpen(!pinnedOpen);
+                    savePinnedOpen(!pinnedOpen);
                   }}
-                />
-              );
-            })}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m9 6 6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Pinned</span>
+                  <span className="thread-widget-pinned-count">{pinned.length}</span>
+                  {pinned.some(needsReply) ? <span className="thread-widget-pinned-dot" aria-label="A pinned thread needs you" /> : null}
+                </button>
+                {pinnedOpen ? pinned.map(renderRow) : null}
+              </section>
+            ) : null}
+            {rows.map(renderRow)}
           </div>
           {menu !== null && menuThread !== null ? (
             <RowMenu

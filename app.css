@@ -367,3 +367,52 @@ form.thread-widget-row input {
   flex-direction: row;
   gap: 4px;
 }
+
+.thread-widget-pinned {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.thread-widget-pinned-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  padding: 6px 8px;
+  font: 600 12px/1.2 ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thread-widget-pinned-toggle:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.thread-widget-pinned-toggle svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  transition: transform 120ms ease;
+}
+
+.thread-widget-pinned-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.thread-widget-pinned-count {
+  font-weight: 500;
+}
+
+/* While collapsed, a dot says a pinned thread needs you. */
+.thread-widget-pinned-dot {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: light-dark(#b45309, #fbbf24);
+}

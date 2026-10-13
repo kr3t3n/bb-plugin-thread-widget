@@ -160,3 +160,39 @@ export function filterThreads<T extends SortableThread>(
     .sort(compare<T>(filters.sort))
     .slice(0, limit);
 }
+
+export type PinnableThread = SortableThread & { isPinned?: boolean; pinSortKey?: string | null };
+
+/** Pinned, unarchived threads in bb's pin order. Filters do not apply. */
+export function pinnedThreads<T extends PinnableThread>(threads: readonly T[]): T[] {
+  return threads
+    .filter((thread) => thread.isPinned === true && !thread.isArchived)
+    .sort((a, b) => {
+      const left = a.pinSortKey ?? null;
+      const right = b.pinSortKey ?? null;
+      if (left !== right) {
+        if (left === null) return 1;
+        if (right === null) return -1;
+        return left < right ? -1 : 1;
+      }
+      return a.id.localeCompare(b.id);
+    });
+}
+
+const PINNED_OPEN_KEY = "bb-plugin-thread-widget:pinned-open";
+
+export function loadPinnedOpen(): boolean {
+  try {
+    return localStorage.getItem(PINNED_OPEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function savePinnedOpen(open: boolean): void {
+  try {
+    localStorage.setItem(PINNED_OPEN_KEY, open ? "1" : "0");
+  } catch {
+    // The accordion still works for this session.
+  }
+}
