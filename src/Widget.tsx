@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ThreadChat,
   experimental_useProviders,
@@ -16,6 +16,7 @@ import {
   SORT_LABELS,
   STATUS_FILTERS,
   STATUS_LABELS,
+  DEFAULT_FILTERS,
   filterThreads,
   loadFilters,
   saveFilters,
@@ -66,80 +67,127 @@ function WidgetIndicators({ onUsageOpen }: { onUsageOpen: () => void }) {
 
 type ProviderOption = { id: string; displayName?: string };
 
-function WidgetFilterBar({
+const FILTER_ICON =
+  "M3 5h18l-7 8.5V19l-4 2v-7.5L3 5Z";
+
+/** True when the filters differ from the defaults, so the button can say so. */
+function filtersChanged(filters: WidgetFilters): boolean {
+  return (Object.keys(DEFAULT_FILTERS) as (keyof WidgetFilters)[]).some(
+    (key) => filters[key] !== DEFAULT_FILTERS[key],
+  );
+}
+
+function WidgetFilterModal({
   filters,
   onChange,
+  onReset,
+  onClose,
   providers,
   labels,
 }: {
   filters: WidgetFilters;
   onChange: (patch: Partial<WidgetFilters>) => void;
+  onReset: () => void;
+  onClose: () => void;
   providers: readonly ProviderOption[];
   labels: readonly WidgetLabel[] | null;
 }) {
+  const card = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    card.current?.querySelector("select")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const labelOptions = labels ?? [];
   const knownSlug = labelOptions.some((label) => label.slug === filters.labelSlug);
   return (
-    <div className="thread-widget-filters" role="group" aria-label="Filter and sort threads">
-      <select
-        aria-label="Status"
-        value={filters.status}
-        onChange={(event) => onChange({ status: event.target.value as StatusFilter })}
+    <div
+      className="thread-widget-modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={card}
+        className="thread-widget-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filter and sort threads"
       >
-        {STATUS_FILTERS.map((value) => (
-          <option key={value} value={value}>
-            {STATUS_LABELS[value]}
-          </option>
-        ))}
-      </select>
-      <select
-        aria-label="Provider"
-        value={filters.providerId}
-        onChange={(event) => onChange({ providerId: event.target.value })}
-      >
-        <option value={ALL_PROVIDERS}>All providers</option>
-        {providers.map((provider) => (
-          <option key={provider.id} value={provider.id}>
-            {provider.displayName ?? provider.id}
-          </option>
-        ))}
-      </select>
-      <select
-        aria-label="Label filter"
-        value={filters.labelMode}
-        onChange={(event) => onChange({ labelMode: event.target.value as LabelMode })}
-      >
-        {LABEL_MODES.map((value) => (
-          <option key={value} value={value}>
-            {LABEL_MODE_LABELS[value]}
-          </option>
-        ))}
-      </select>
-      {filters.labelMode === "all" ? null : (
-        <select
-          aria-label="Label"
-          value={filters.labelSlug}
-          onChange={(event) => onChange({ labelSlug: event.target.value })}
-        >
-          {knownSlug ? null : <option value={filters.labelSlug}>{filters.labelSlug}</option>}
-          {labelOptions.map((label) => (
-            <option key={label.id} value={label.slug}>
-              {label.name}
-            </option>
-          ))}
-        </select>
-      )}
-      <select
-        aria-label="Sort"
-        value={filters.sort}
-        onChange={(event) => onChange({ sort: event.target.value as WidgetSort })}
-      >
-        {SORTS.map((value) => (
-          <option key={value} value={value}>
-            {SORT_LABELS[value]}
-          </option>
-        ))}
-      </select>
+        <strong>Filter and sort</strong>
+        <label>
+          <span>Status</span>
+          <select
+            value={filters.status}
+            onChange={(event) => onChange({ status: event.target.value as StatusFilter })}
+          >
+            {STATUS_FILTERS.map((value) => (
+              <option key={value} value={value}>
+                {STATUS_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Provider</span>
+          <select value={filters.providerId} onChange={(event) => onChange({ providerId: event.target.value })}>
+            <option value={ALL_PROVIDERS}>All providers</option>
+            {providers.map((provider) => (
+              <option key={provider.id} value={provider.id}>
+                {provider.displayName ?? provider.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Labels</span>
+          <select
+            value={filters.labelMode}
+            onChange={(event) => onChange({ labelMode: event.target.value as LabelMode })}
+          >
+            {LABEL_MODES.map((value) => (
+              <option key={value} value={value}>
+                {LABEL_MODE_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {filters.labelMode === "all" ? null : (
+          <label>
+            <span>Label</span>
+            <select value={filters.labelSlug} onChange={(event) => onChange({ labelSlug: event.target.value })}>
+              {knownSlug ? null : <option value={filters.labelSlug}>{filters.labelSlug}</option>}
+              {labelOptions.map((label) => (
+                <option key={label.id} value={label.slug}>
+                  {label.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label>
+          <span>Sort</span>
+          <select value={filters.sort} onChange={(event) => onChange({ sort: event.target.value as WidgetSort })}>
+            {SORTS.map((value) => (
+              <option key={value} value={value}>
+                {SORT_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="thread-widget-modal-actions">
+          <button type="button" onClick={onReset}>
+            Reset
+          </button>
+          <button type="button" className="is-primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -163,6 +211,8 @@ export function Widget() {
   const header = useRef<HTMLElement>(null);
   const inset = useChromeInset(header, enabled);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const updateFilters = (patch: Partial<WidgetFilters>) => {
     setFilters((current) => {
       const next = { ...current, ...patch };
@@ -260,14 +310,29 @@ export function Widget() {
               <strong>Threads</strong>
               <span>{waiting === 0 ? "None waiting" : `${waiting} waiting`}</span>
             </div>
+            <button
+              type="button"
+              className={filtersChanged(filters) ? "thread-widget-icon is-active" : "thread-widget-icon"}
+              aria-label="Filter and sort"
+              title="Filter and sort"
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen(true)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={FILTER_ICON} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+            </button>
             <button type="button" onClick={closeWidget}>
               Exit
             </button>
           </div>
         ) : (
           <div className="thread-widget-bar">
-            <button type="button" onClick={goBack}>
-              Back
+            <button type="button" className="thread-widget-icon" aria-label="Back" title="Back" onClick={goBack}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
             <strong>{threadTitle(open)}</strong>
             <button type="button" onClick={() => openInBb(open.id)}>
@@ -275,14 +340,6 @@ export function Widget() {
             </button>
           </div>
         )}
-        {open === null ? (
-          <WidgetFilterBar
-            filters={filters}
-            onChange={updateFilters}
-            providers={providers}
-            labels={labels?.labels ?? null}
-          />
-        ) : null}
         <WidgetIndicators onUsageOpen={closeWidget} />
       </header>
       {open === null ? (
@@ -379,6 +436,16 @@ export function Widget() {
           </div>
         </div>
       )}
+      {filtersOpen && open === null ? (
+        <WidgetFilterModal
+          filters={filters}
+          onChange={updateFilters}
+          onReset={() => updateFilters(DEFAULT_FILTERS)}
+          onClose={closeFilters}
+          providers={providers}
+          labels={labels?.labels ?? null}
+        />
+      ) : null}
     </div>
   );
 }
