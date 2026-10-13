@@ -1,4 +1,4 @@
-import { needsReply, threadTitle, type WidgetThread } from "./inbox.ts";
+import { needsReply, statusLabel, threadTitle, type WidgetThread } from "./inbox.ts";
 
 export const STATUS_FILTERS = ["all", "needs_you", "working", "unread", "idle", "draft"] as const;
 export type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -162,6 +162,21 @@ export function filterThreads<T extends SortableThread>(
 }
 
 export type PinnableThread = SortableThread & { isPinned?: boolean; pinSortKey?: string | null };
+
+/** A thread that is working, needs you, or is unread. */
+export function isActive(thread: WidgetThread): boolean {
+  return statusLabel(thread) !== "Idle";
+}
+
+/**
+ * Split pinned threads. Active ones join the main list; the idle rest stay
+ * in the collapsed Pinned section.
+ */
+export function splitPinned<T extends PinnableThread>(threads: readonly T[]): { listed: T[]; tucked: T[] } {
+  const listed = threads.filter((thread) => thread.isPinned !== true || isActive(thread));
+  const tucked = pinnedThreads(threads).filter((thread) => !isActive(thread));
+  return { listed, tucked };
+}
 
 /** Pinned, unarchived threads in bb's pin order. Filters do not apply. */
 export function pinnedThreads<T extends PinnableThread>(threads: readonly T[]): T[] {

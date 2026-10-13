@@ -20,8 +20,8 @@ import {
   filterThreads,
   loadFilters,
   loadPinnedOpen,
-  pinnedThreads,
   savePinnedOpen,
+  splitPinned,
   saveFilters,
   type LabelMode,
   type StatusFilter,
@@ -281,10 +281,11 @@ export function Widget() {
   if (!enabled) return null;
 
   const labelId = labels?.labels.find((label) => label.slug === filters.labelSlug)?.id ?? null;
-  // Pinned threads have their own section at the top, so the list skips them.
-  const pinned = pinnedThreads(threads);
+  // Active pinned threads join the list. The idle rest stay in the
+  // collapsed Pinned section at the top.
+  const { listed, tucked: pinned } = splitPinned(threads);
   const rows = filterThreads(
-    threads.filter((thread) => !thread.isPinned),
+    listed,
     filters,
     labelId,
     labels?.labelIdsByThreadId ?? null,
@@ -473,7 +474,6 @@ export function Widget() {
                   </svg>
                   <span>Pinned</span>
                   <span className="thread-widget-pinned-count">{pinned.length}</span>
-                  {pinned.some(needsReply) ? <span className="thread-widget-pinned-dot" aria-label="A pinned thread needs you" /> : null}
                 </button>
                 {pinnedOpen ? pinned.map(renderRow) : null}
               </section>
