@@ -169,13 +169,11 @@ export function isActive(thread: WidgetThread): boolean {
 }
 
 /**
- * Split pinned threads. Active ones join the main list; the idle rest stay
- * in the collapsed Pinned section.
+ * The pinned rows to show, in pin order. A collapsed section still shows the
+ * active ones; opening it shows every pinned thread.
  */
-export function splitPinned<T extends PinnableThread>(threads: readonly T[]): { listed: T[]; tucked: T[] } {
-  const listed = threads.filter((thread) => thread.isPinned !== true || isActive(thread));
-  const tucked = pinnedThreads(threads).filter((thread) => !isActive(thread));
-  return { listed, tucked };
+export function visiblePinned<T extends PinnableThread>(pinned: readonly T[], open: boolean): T[] {
+  return open ? [...pinned] : pinned.filter(isActive);
 }
 
 /** Pinned, unarchived threads in bb's pin order. Filters do not apply. */

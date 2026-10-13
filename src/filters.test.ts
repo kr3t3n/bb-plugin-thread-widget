@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_FILTERS, filterThreads, parseFilters, pinnedThreads, splitPinned, type SortableThread } from "./filters.ts";
+import { DEFAULT_FILTERS, filterThreads, parseFilters, pinnedThreads, visiblePinned, type SortableThread } from "./filters.ts";
 
 function thread(patch: Partial<SortableThread> & Pick<SortableThread, "id">): SortableThread {
   return {
@@ -57,15 +57,13 @@ test("pinned threads keep bb's pin order and skip archived ones", () => {
   assert.deepEqual(pinnedThreads(rows).map((r) => r.id), ["a", "b", "x"]);
 });
 
-test("active pinned threads join the list and idle ones stay tucked", () => {
-  const rows = [
+test("a collapsed Pinned section still shows active pinned threads", () => {
+  const pinned = pinnedThreads([
     { ...thread({ id: "busy", indicator: "runtime" }), isPinned: true, pinSortKey: "a" },
-    { ...thread({ id: "asks", hasPendingInteraction: true }), isPinned: true, pinSortKey: "b" },
-    { ...thread({ id: "new", isUnread: true }), isPinned: true, pinSortKey: "c" },
-    { ...thread({ id: "quiet" }), isPinned: true, pinSortKey: "d" },
-    { ...thread({ id: "loose" }), isPinned: false, pinSortKey: null },
-  ];
-  const { listed, tucked } = splitPinned(rows);
-  assert.deepEqual(listed.map((r) => r.id), ["busy", "asks", "new", "loose"]);
-  assert.deepEqual(tucked.map((r) => r.id), ["quiet"]);
+    { ...thread({ id: "quiet" }), isPinned: true, pinSortKey: "b" },
+    { ...thread({ id: "asks", hasPendingInteraction: true }), isPinned: true, pinSortKey: "c" },
+    { ...thread({ id: "new", isUnread: true }), isPinned: true, pinSortKey: "d" },
+  ]);
+  assert.deepEqual(visiblePinned(pinned, false).map((r) => r.id), ["busy", "asks", "new"]);
+  assert.deepEqual(visiblePinned(pinned, true).map((r) => r.id), ["busy", "quiet", "asks", "new"]);
 });
