@@ -19,6 +19,27 @@ body > [data-radix-popper-content-wrapper] {
   gap: 8px;
   min-height: 44px;
   padding: 8px 10px;
+  /* Clear bb's sidebar toggle and the macOS traffic lights. */
+  padding-left: max(10px, var(--thread-widget-inset, 0px));
+}
+
+.thread-widget-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.thread-widget-filters select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  padding: 3px 6px;
+  font: 12px/1.3 ui-sans-serif, system-ui, sans-serif;
 }
 
 .thread-widget-bar strong {

@@ -9,7 +9,9 @@ bb plugin install https://github.com/kr3t3n/bb-plugin-thread-widget
 bb plugin enable thread-widget
 ```
 
-The rail button under the usage meters, or the Thread widget footer action, switches the mode on. Resize the window to keep it small. Exit returns to the normal bb layout.
+The rail button under the usage meters, or the Thread widget footer action, switches the mode on. In the desktop app the window shrinks to 360 pixels wide. Exit returns to the normal bb layout and puts the window back to its earlier width. A full-screen window and a browser tab keep their size.
+
+The header has filters for status, provider and label, and a sort control. By default the widget hides threads with the `automation` label. The widget keeps its own filter choices, apart from Sidebar Pro. The header starts right of bb's sidebar button and the macOS window buttons.
 
 Threads that need a reply are marked Needs you and sort first. Each row starts with the provider icon and bb's status glyph, including the spinner while the agent is working. Right-click a row for the sidebar actions: open in split, copy the thread id or a link, mark read, pin, rename, archive, and delete.
 

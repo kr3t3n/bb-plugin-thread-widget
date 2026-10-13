@@ -7,7 +7,25 @@ import {
   useRpc,
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
-import { needsReply, threadTitle, widgetThreads } from "./inbox";
+import { needsReply, threadTitle } from "./inbox";
+import {
+  ALL_PROVIDERS,
+  LABEL_MODES,
+  LABEL_MODE_LABELS,
+  SORTS,
+  SORT_LABELS,
+  STATUS_FILTERS,
+  STATUS_LABELS,
+  filterThreads,
+  loadFilters,
+  saveFilters,
+  type LabelMode,
+  type StatusFilter,
+  type WidgetFilters,
+  type WidgetSort,
+} from "./filters";
+import { useLabels, type WidgetLabel } from "./labels";
+import { useChromeInset } from "./chrome-inset";
 import { ThreadRow } from "./ThreadRow";
 import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
@@ -46,6 +64,86 @@ function WidgetIndicators({ onUsageOpen }: { onUsageOpen: () => void }) {
   );
 }
 
+type ProviderOption = { id: string; displayName?: string };
+
+function WidgetFilterBar({
+  filters,
+  onChange,
+  providers,
+  labels,
+}: {
+  filters: WidgetFilters;
+  onChange: (patch: Partial<WidgetFilters>) => void;
+  providers: readonly ProviderOption[];
+  labels: readonly WidgetLabel[] | null;
+}) {
+  const labelOptions = labels ?? [];
+  const knownSlug = labelOptions.some((label) => label.slug === filters.labelSlug);
+  return (
+    <div className="thread-widget-filters" role="group" aria-label="Filter and sort threads">
+      <select
+        aria-label="Status"
+        value={filters.status}
+        onChange={(event) => onChange({ status: event.target.value as StatusFilter })}
+      >
+        {STATUS_FILTERS.map((value) => (
+          <option key={value} value={value}>
+            {STATUS_LABELS[value]}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Provider"
+        value={filters.providerId}
+        onChange={(event) => onChange({ providerId: event.target.value })}
+      >
+        <option value={ALL_PROVIDERS}>All providers</option>
+        {providers.map((provider) => (
+          <option key={provider.id} value={provider.id}>
+            {provider.displayName ?? provider.id}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Label filter"
+        value={filters.labelMode}
+        onChange={(event) => onChange({ labelMode: event.target.value as LabelMode })}
+      >
+        {LABEL_MODES.map((value) => (
+          <option key={value} value={value}>
+            {LABEL_MODE_LABELS[value]}
+          </option>
+        ))}
+      </select>
+      {filters.labelMode === "all" ? null : (
+        <select
+          aria-label="Label"
+          value={filters.labelSlug}
+          onChange={(event) => onChange({ labelSlug: event.target.value })}
+        >
+          {knownSlug ? null : <option value={filters.labelSlug}>{filters.labelSlug}</option>}
+          {labelOptions.map((label) => (
+            <option key={label.id} value={label.slug}>
+              {label.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <select
+        aria-label="Sort"
+        value={filters.sort}
+        onChange={(event) => onChange({ sort: event.target.value as WidgetSort })}
+      >
+        {SORTS.map((value) => (
+          <option key={value} value={value}>
+            {SORT_LABELS[value]}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export function Widget() {
   const [enabled, setEnabled] = useState(widgetEnabled);
   const widgetRoot = useRef<HTMLDivElement>(null);
@@ -60,6 +158,18 @@ export function Widget() {
   const { status, threads, projects } = experimental_useSidebarThreads();
   const { providers } = experimental_useProviders();
   const actions = experimental_useSidebarThreadActions();
+  const [filters, setFilters] = useState<WidgetFilters>(loadFilters);
+  const labels = useLabels(enabled);
+  const header = useRef<HTMLElement>(null);
+  const inset = useChromeInset(header, enabled);
+
+  const updateFilters = (patch: Partial<WidgetFilters>) => {
+    setFilters((current) => {
+      const next = { ...current, ...patch };
+      saveFilters(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const sync = () => setEnabled(widgetEnabled());
@@ -110,7 +220,8 @@ export function Widget() {
 
   if (!enabled) return null;
 
-  const rows = widgetThreads(threads);
+  const labelId = labels?.labels.find((label) => label.slug === filters.labelSlug)?.id ?? null;
+  const rows = filterThreads(threads, filters, labelId, labels?.labelIdsByThreadId ?? null);
   const waiting = rows.filter(needsReply).length;
   const open = threads.find((thread) => thread.id === openId) ?? null;
   const menuThread = menu === null ? null : (threads.find((thread) => thread.id === menu.id) ?? null);
@@ -138,7 +249,11 @@ export function Widget() {
 
   return (
     <div ref={widgetRoot} className="thread-widget" role="dialog" aria-label="Thread widget">
-      <header className="thread-widget-header">
+      <header
+        ref={header}
+        className="thread-widget-header"
+        style={{ ["--thread-widget-inset" as string]: `${inset}px` }}
+      >
         {open === null ? (
           <div className="thread-widget-bar">
             <div>
@@ -160,6 +275,14 @@ export function Widget() {
             </button>
           </div>
         )}
+        {open === null ? (
+          <WidgetFilterBar
+            filters={filters}
+            onChange={updateFilters}
+            providers={providers}
+            labels={labels?.labels ?? null}
+          />
+        ) : null}
         <WidgetIndicators onUsageOpen={closeWidget} />
       </header>
       {open === null ? (
