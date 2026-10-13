@@ -17,6 +17,8 @@ Threads that need a reply are marked Needs you and sort first. Each row starts w
 
 Open a thread to read the session and reply. The composer is bb's own composer, so you can attach a file. Sending closes the session view and leaves the reply on the thread. Open in bb leaves the widget and shows that thread in the normal window.
 
+In an open thread, the row under the header has two buttons between the health labels and the usage meters. The panel button opens bb's right panel for the thread: info, diff and open tabs. The + button opens bb's new-tab page: terminal, files, editor, browser, side chat, document and task. The widget steps aside while the panel shows, and Back to widget at the bottom returns to it. bb has no plugin API for this panel, so the widget opens the thread underneath and presses bb's own buttons.
+
 ## Rail placement
 
 `src/rail-layout.ts` is the shared rail contract. Keep its source identical in

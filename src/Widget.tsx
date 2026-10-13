@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   ThreadChat,
   experimental_useProviders,
@@ -27,6 +27,7 @@ import {
 } from "./filters";
 import { useLabels, type WidgetLabel } from "./labels";
 import { useChromeInset } from "./chrome-inset";
+import { openSidePanel } from "./side-panel";
 import { ThreadRow } from "./ThreadRow";
 import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
@@ -34,7 +35,7 @@ import { mountChatBack } from "./chat-back";
 import { refreshRail } from "./rail-layout";
 import { MODE_EVENT, setWidgetEnabled, widgetEnabled } from "./mode";
 
-function WidgetIndicators({ onUsageOpen }: { onUsageOpen: () => void }) {
+function WidgetIndicators({ onUsageOpen, children }: { onUsageOpen: () => void; children?: ReactNode }) {
   const host = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const element = host.current;
@@ -61,7 +62,9 @@ function WidgetIndicators({ onUsageOpen }: { onUsageOpen: () => void }) {
           window.setTimeout(onUsageOpen, 0);
         }
       }}
-    />
+    >
+      {children}
+    </div>
   );
 }
 
@@ -212,6 +215,9 @@ export function Widget() {
   const inset = useChromeInset(header, enabled);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [panelMode, setPanelMode] = useState(false);
+  const panelRun = useRef<AbortController | null>(null);
+  useEffect(() => () => panelRun.current?.abort(), []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const updateFilters = (patch: Partial<WidgetFilters>) => {
     setFilters((current) => {
@@ -292,13 +298,42 @@ export function Widget() {
     setWidgetEnabled(false);
   };
 
+  /**
+   * Show bb's right panel for the open thread. The widget steps aside and
+   * floats a Back to widget button over bb until the user returns.
+   */
+  const showSidePanel = (threadId: string, newTab: boolean) => {
+    panelRun.current?.abort();
+    const run = new AbortController();
+    panelRun.current = run;
+    actions.open(threadId);
+    setPanelMode(true);
+    void openSidePanel(threadId, newTab, run.signal).then((opened) => {
+      if (!opened && panelRun.current === run) {
+        panelRun.current = null;
+        setPanelMode(false);
+      }
+    });
+  };
+
+  const returnToWidget = () => {
+    panelRun.current?.abort();
+    panelRun.current = null;
+    setPanelMode(false);
+  };
+
   const openInBb = (threadId: string) => {
     actions.open(threadId);
     closeWidget();
   };
 
   return (
-    <div ref={widgetRoot} className="thread-widget" role="dialog" aria-label="Thread widget">
+    <div
+      ref={widgetRoot}
+      className={panelMode ? "thread-widget is-stepped-aside" : "thread-widget"}
+      role="dialog"
+      aria-label="Thread widget"
+    >
       <header
         ref={header}
         className="thread-widget-header"
@@ -340,7 +375,35 @@ export function Widget() {
             </button>
           </div>
         )}
-        <WidgetIndicators onUsageOpen={closeWidget} />
+        <WidgetIndicators onUsageOpen={closeWidget}>
+          {open === null ? null : (
+            <div className="thread-widget-panel-actions">
+              <button
+                type="button"
+                className="thread-widget-icon"
+                aria-label="Show right panel"
+                title="Show right panel"
+                onClick={() => showSidePanel(open.id, false)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M14.5 4.5v15" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="thread-widget-icon"
+                aria-label="Open new tab"
+                title="Open new tab (terminal, files and more)"
+                onClick={() => showSidePanel(open.id, true)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </WidgetIndicators>
       </header>
       {open === null ? (
         <>
@@ -436,6 +499,11 @@ export function Widget() {
           </div>
         </div>
       )}
+      {panelMode ? (
+        <button type="button" className="thread-widget-return" onClick={returnToWidget}>
+          Back to widget
+        </button>
+      ) : null}
       {filtersOpen && open === null ? (
         <WidgetFilterModal
           filters={filters}
