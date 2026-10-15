@@ -5,6 +5,8 @@ import {
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 import { needsReply, statusLabel, threadTitle } from "./inbox";
+import type { UsageLimit } from "./usage-limits";
+import { UsageLimitLabel } from "./UsageLimitLabel";
 
 type AgentProvider = {
   id: string;
@@ -16,11 +18,13 @@ type AgentProvider = {
 export function ThreadRow({
   thread,
   providers,
+  usageLimit,
   onOpen,
   onContextMenu,
 }: {
   thread: PluginSidebarThread;
   providers: readonly AgentProvider[];
+  usageLimit: UsageLimit | null;
   onOpen: () => void;
   onContextMenu: (event: MouseEvent) => void;
 }) {
@@ -31,13 +35,17 @@ export function ThreadRow({
   const label = statusLabel(thread);
 
   return (
-    <button
-      type="button"
+    <div
       data-thread-widget-row=""
       className={needsReply(thread) ? "thread-widget-row is-waiting" : "thread-widget-row"}
-      onClick={onOpen}
       onContextMenu={onContextMenu}
     >
+      <button
+        type="button"
+        className="thread-widget-open"
+        aria-label={`${threadTitle(thread)}. ${label}`}
+        onClick={onOpen}
+      />
       <ProviderIcon
         providerKind="agent"
         provider={provider}
@@ -46,9 +54,10 @@ export function ThreadRow({
       />
       <span className="thread-widget-title">{threadTitle(thread)}</span>
       <span className="thread-widget-marks">
+        {usageLimit === null ? null : <UsageLimitLabel limit={usageLimit} />}
         <ThreadStatusGlyph indicator={thread.indicator} rowStatus={rowStatus} />
         <span className={`thread-widget-status is-${label.replace(" ", "-").toLowerCase()}`}>{label}</span>
       </span>
-    </button>
+    </div>
   );
 }

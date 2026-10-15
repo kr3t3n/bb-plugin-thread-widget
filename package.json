@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "bb plugin build",
-    "test": "node --experimental-strip-types --test src/inbox.test.ts src/filters.test.ts src/plugin-requests.test.ts"
+    "test": "node --experimental-strip-types --test src/inbox.test.ts src/filters.test.ts src/plugin-requests.test.ts src/usage-limits.test.ts"
   },
   "devDependencies": {
     "@get-bb/plugin-sdk": "0.4.6",

@@ -36,6 +36,8 @@ import { openSidePanel } from "./side-panel";
 import { secretRequest, usePluginRequests } from "./plugin-requests";
 import { SecretForm } from "./SecretForm";
 import { ThreadRow } from "./ThreadRow";
+import { useUsageLimits } from "./use-usage-limits";
+import { usageLimitForThread } from "./usage-limits";
 import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
 import { mountChatBack } from "./chat-back";
@@ -223,6 +225,7 @@ export function Widget() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [panelMode, setPanelMode] = useState(false);
+  const usageLimits = useUsageLimits(threads, enabled && !panelMode);
   const [pinnedOpen, setPinnedOpen] = useState(loadPinnedOpen);
   const panelRun = useRef<AbortController | null>(null);
   useEffect(() => () => panelRun.current?.abort(), []);
@@ -432,6 +435,7 @@ export function Widget() {
         key={thread.id}
         thread={thread as PluginSidebarThread}
         providers={providers}
+        usageLimit={usageLimitForThread(usageLimits, thread)}
         onOpen={() => openThread(thread.id)}
         onContextMenu={(event) => {
           event.preventDefault();
