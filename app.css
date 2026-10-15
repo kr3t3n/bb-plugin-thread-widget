@@ -260,10 +260,12 @@ form.thread-widget-row input {
 }
 
 .thread-widget-provider-group {
+  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
   align-items: center;
-  gap: 1px;
 }
 
 .thread-widget-provider {
@@ -288,6 +290,9 @@ form.thread-widget-row input {
 }
 
 .thread-widget-usage-badge {
+  position: absolute;
+  top: -9px;
+  right: -6px;
   display: inline-flex;
   pointer-events: auto;
   cursor: pointer;
