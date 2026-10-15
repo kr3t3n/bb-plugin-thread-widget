@@ -4,6 +4,7 @@ import {
   experimental_useProviders,
   experimental_useSidebarThreadActions,
   experimental_useSidebarThreads,
+  useBbNavigate,
   useRpc,
   type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
@@ -223,6 +224,9 @@ export function Widget() {
   const [pinnedOpen, setPinnedOpen] = useState(loadPinnedOpen);
   const panelRun = useRef<AbortController | null>(null);
   useEffect(() => () => panelRun.current?.abort(), []);
+  const navigate = useBbNavigate();
+  // Set while bb's compose screen shows for a new thread from the widget.
+  const [composing, setComposing] = useState(false);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const updateFilters = (patch: Partial<WidgetFilters>) => {
     setFilters((current) => {
@@ -231,6 +235,31 @@ export function Widget() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (!composing) return;
+    // Wait for the compose screen first, so an old thread route never counts.
+    let seenCompose = false;
+    const timer = window.setInterval(() => {
+      const match = /\/threads\/([A-Za-z0-9_-]+)/.exec(window.location.pathname);
+      if (match === null) {
+        seenCompose = true;
+        return;
+      }
+      if (!seenCompose) return;
+      setComposing(false);
+      setPanelMode(false);
+      setOpenId(match[1]);
+    }, 300);
+    return () => window.clearInterval(timer);
+  }, [composing]);
+
+  // bb's sidebar toggle has no use in widget mode, so hide it there.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("thread-widget-active", enabled && !panelMode);
+    return () => root.classList.remove("thread-widget-active");
+  }, [enabled, panelMode]);
 
   useEffect(() => {
     const sync = () => setEnabled(widgetEnabled());
@@ -333,7 +362,20 @@ export function Widget() {
   const returnToWidget = () => {
     panelRun.current?.abort();
     panelRun.current = null;
+    setComposing(false);
     setPanelMode(false);
+  };
+
+  /**
+   * Start a thread on bb's compose screen. The widget steps aside, and comes
+   * back with the new thread open once bb sends the first message.
+   */
+  const startNewThread = () => {
+    panelRun.current?.abort();
+    panelRun.current = null;
+    setComposing(true);
+    setPanelMode(true);
+    navigate.toCompose({ focusPrompt: true });
   };
 
   const openInBb = (threadId: string) => {
@@ -387,6 +429,17 @@ export function Widget() {
       >
         {open === null ? (
           <div className="thread-widget-bar">
+            <button
+              type="button"
+              className="thread-widget-icon"
+              aria-label="New thread"
+              title="New thread"
+              onClick={startNewThread}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
             <div>
               <strong>Threads</strong>
               <span>{waiting === 0 ? "None waiting" : `${waiting} waiting`}</span>
@@ -536,7 +589,12 @@ export function Widget() {
         </div>
       )}
       {panelMode ? (
-        <button type="button" className="thread-widget-return" onClick={returnToWidget}>
+        <button
+          type="button"
+          // The compose screen keeps its project and machine pickers at the bottom.
+          className={composing ? "thread-widget-return is-top" : "thread-widget-return"}
+          onClick={returnToWidget}
+        >
           Back to widget
         </button>
       ) : null}

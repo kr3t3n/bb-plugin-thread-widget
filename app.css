@@ -346,6 +346,11 @@ form.thread-widget-row input {
   cursor: pointer;
 }
 
+.thread-widget-return.is-top {
+  top: 8px;
+  bottom: auto;
+}
+
 /* While bb's right panel is open, the widget steps aside. */
 .thread-widget.is-stepped-aside {
   /* Hidden and click-through, but on top so Back to widget shows over bb. */
@@ -406,4 +411,9 @@ form.thread-widget-row input {
 
 .thread-widget-pinned-count {
   font-weight: 500;
+}
+
+/* bb's sidebar toggle has no use in widget mode. */
+html.thread-widget-active [aria-label^="Toggle sidebar"] {
+  display: none !important;
 }
