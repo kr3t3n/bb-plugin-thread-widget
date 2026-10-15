@@ -33,7 +33,8 @@ import {
 import { useLabels, type WidgetLabel } from "./labels";
 import { useChromeInset } from "./chrome-inset";
 import { openSidePanel } from "./side-panel";
-import { usePluginRequest } from "./plugin-requests";
+import { secretRequest, usePluginRequests } from "./plugin-requests";
+import { SecretForm } from "./SecretForm";
 import { ThreadRow } from "./ThreadRow";
 import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
@@ -230,7 +231,11 @@ export function Widget() {
   const [composing, setComposing] = useState(false);
   // Set while bb's full thread view shows a form the widget cannot render.
   const [answering, setAnswering] = useState(false);
-  const pluginRequest = usePluginRequest(enabled ? openId : null);
+  const { requests: pluginRequestList, refresh: refreshRequests } = usePluginRequests(enabled ? openId : null);
+  const pluginRequest = pluginRequestList.length > 0;
+  // A secret request renders in the widget. Other plugin forms need bb's full view.
+  const secretFormRequest = pluginRequestList.find((request) => secretRequest(request) !== null) ?? null;
+  const otherPluginRequest = pluginRequestList.some((request) => secretRequest(request) === null);
 
   // The form was answered: come back to the widget on its own.
   useEffect(() => {
@@ -599,9 +604,17 @@ export function Widget() {
             window.setTimeout(goBack, 0);
           }}
         >
-          {pluginRequest ? (
+          {secretFormRequest !== null ? (
+            <SecretForm
+              key={secretFormRequest.id}
+              request={secretFormRequest}
+              secret={secretRequest(secretFormRequest)!}
+              onDone={refreshRequests}
+            />
+          ) : null}
+          {otherPluginRequest ? (
             <div className="thread-widget-request" role="status">
-              <span>This thread waits for a form, such as a secret, that only shows in bb's full view.</span>
+              <span>This thread waits for a plugin form that only shows in bb's full view.</span>
               <button type="button" onClick={() => answerInBb(open.id)}>
                 Answer in bb
               </button>
