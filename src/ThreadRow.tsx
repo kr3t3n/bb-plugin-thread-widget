@@ -6,7 +6,7 @@ import {
 } from "@get-bb/plugin-sdk/app";
 import { needsReply, statusLabel, threadTitle } from "./inbox";
 import type { UsageLimit } from "./usage-limits";
-import { UsageLimitLabel } from "./UsageLimitLabel";
+import { UsageLimitBadge } from "./UsageLimitBadge";
 
 type AgentProvider = {
   id: string;
@@ -46,15 +46,17 @@ export function ThreadRow({
         aria-label={`${threadTitle(thread)}. ${label}`}
         onClick={onOpen}
       />
-      <ProviderIcon
-        providerKind="agent"
-        provider={provider}
-        className="thread-widget-provider"
-        aria-label={provider.displayName ?? thread.providerId}
-      />
+      <span className="thread-widget-provider-group">
+        <ProviderIcon
+          providerKind="agent"
+          provider={provider}
+          className="thread-widget-provider"
+          aria-label={provider.displayName ?? thread.providerId}
+        />
+        {usageLimit === null ? null : <UsageLimitBadge limit={usageLimit} />}
+      </span>
       <span className="thread-widget-title">{threadTitle(thread)}</span>
       <span className="thread-widget-marks">
-        {usageLimit === null ? null : <UsageLimitLabel limit={usageLimit} />}
         <ThreadStatusGlyph indicator={thread.indicator} rowStatus={rowStatus} />
         <span className={`thread-widget-status is-${label.replace(" ", "-").toLowerCase()}`}>{label}</span>
       </span>

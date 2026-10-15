@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { usageLimitLabel, type UsageLimit } from "./usage-limits";
 import { usageTooltipPosition } from "./usage-tooltip";
 
-export function UsageLimitLabel({ limit }: { limit: UsageLimit }) {
+export function UsageLimitBadge({ limit }: { limit: UsageLimit }) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
   const tooltip = useRef<HTMLSpanElement>(null);
@@ -68,7 +68,7 @@ export function UsageLimitLabel({ limit }: { limit: UsageLimit }) {
       <button
         ref={button}
         type="button"
-        className="thread-widget-limit"
+        className="thread-widget-usage-badge"
         aria-label={detail}
         aria-describedby={open ? id : undefined}
         onPointerEnter={show}
@@ -77,14 +77,16 @@ export function UsageLimitLabel({ limit }: { limit: UsageLimit }) {
         onBlur={close}
         onClick={(event) => { event.stopPropagation(); show(); }}
       >
-        Limit
+        <svg aria-hidden="true" viewBox="0 0 16 20" width="6" height="8" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <path d="M3 2h10M3 18h10M4 2v4c0 2 2 3 4 4-2 1-4 2-4 4v4M12 2v4c0 2-2 3-4 4 2 1 4 2 4 4v4" />
+        </svg>
       </button>
       {open ? createPortal(
         <span
           ref={tooltip}
           id={id}
           role="tooltip"
-          className="thread-widget-limit-tooltip"
+          className="thread-widget-usage-tooltip"
           onPointerEnter={show}
           onPointerLeave={delayClose}
         >
