@@ -417,3 +417,31 @@ form.thread-widget-row input {
 html.thread-widget-active [aria-label^="Toggle sidebar"] {
   display: none !important;
 }
+
+/* A plugin form, such as a secret request, waits in bb's full view. */
+.thread-widget-request {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 10px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  font-size: 12px;
+}
+
+.thread-widget-request span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.thread-widget-request button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 6px;
+  background: var(--foreground);
+  color: var(--background);
+  padding: 5px 10px;
+  font: 600 12px/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}

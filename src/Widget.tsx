@@ -33,6 +33,7 @@ import {
 import { useLabels, type WidgetLabel } from "./labels";
 import { useChromeInset } from "./chrome-inset";
 import { openSidePanel } from "./side-panel";
+import { usePluginRequest } from "./plugin-requests";
 import { ThreadRow } from "./ThreadRow";
 import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
@@ -227,6 +228,16 @@ export function Widget() {
   const navigate = useBbNavigate();
   // Set while bb's compose screen shows for a new thread from the widget.
   const [composing, setComposing] = useState(false);
+  // Set while bb's full thread view shows a form the widget cannot render.
+  const [answering, setAnswering] = useState(false);
+  const pluginRequest = usePluginRequest(enabled ? openId : null);
+
+  // The form was answered: come back to the widget on its own.
+  useEffect(() => {
+    if (!answering || pluginRequest) return;
+    setAnswering(false);
+    setPanelMode(false);
+  }, [answering, pluginRequest]);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const updateFilters = (patch: Partial<WidgetFilters>) => {
     setFilters((current) => {
@@ -363,7 +374,17 @@ export function Widget() {
     panelRun.current?.abort();
     panelRun.current = null;
     setComposing(false);
+    setAnswering(false);
     setPanelMode(false);
+  };
+
+  /** Show the thread in bb's full view, where plugin forms such as secrets render. */
+  const answerInBb = (threadId: string) => {
+    panelRun.current?.abort();
+    panelRun.current = null;
+    setAnswering(true);
+    setPanelMode(true);
+    actions.open(threadId);
   };
 
   /**
@@ -578,6 +599,14 @@ export function Widget() {
             window.setTimeout(goBack, 0);
           }}
         >
+          {pluginRequest ? (
+            <div className="thread-widget-request" role="status">
+              <span>This thread waits for a form, such as a secret, that only shows in bb's full view.</span>
+              <button type="button" onClick={() => answerInBb(open.id)}>
+                Answer in bb
+              </button>
+            </div>
+          ) : null}
           <div className="thread-widget-transcript">
             <ThreadChat
               threadId={open.id}
@@ -591,8 +620,8 @@ export function Widget() {
       {panelMode ? (
         <button
           type="button"
-          // The compose screen keeps its project and machine pickers at the bottom.
-          className={composing ? "thread-widget-return is-top" : "thread-widget-return"}
+          // Compose pickers and plugin forms sit at the bottom, so go to the top.
+          className={composing || answering ? "thread-widget-return is-top" : "thread-widget-return"}
           onClick={returnToWidget}
         >
           Back to widget
