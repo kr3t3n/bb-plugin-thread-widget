@@ -42,6 +42,8 @@ import { RowMenu } from "./RowMenu";
 import { linkContract } from "./rpc";
 import { mountChatBack } from "./chat-back";
 import { refreshRail } from "./rail-layout";
+import { chromeParentOrigin, postOpenThread } from "./embed";
+import { threadPath } from "./thread-link";
 import { MODE_EVENT, setWidgetEnabled, widgetEnabled } from "./mode";
 
 function WidgetIndicators({ onUsageOpen, children }: { onUsageOpen: () => void; children?: ReactNode }) {
@@ -342,6 +344,10 @@ export function Widget() {
   );
   const waiting = rows.filter(needsReply).length + pinned.filter(needsReply).length;
   const open = threads.find((thread) => thread.id === openId) ?? null;
+  const openTitle = open?.title ?? null;
+  useEffect(() => {
+    postOpenThread(openId, openTitle);
+  }, [openId, openTitle]);
   const menuThread = menu === null ? null : (threads.find((thread) => thread.id === menu.id) ?? null);
 
   const openThread = (id: string) => {
@@ -408,6 +414,15 @@ export function Widget() {
   };
 
   const openInBb = (threadId: string) => {
+    // In the Chrome side panel, the full view belongs in a browser tab.
+    if (chromeParentOrigin() !== null) {
+      const thread = threads.find((candidate) => candidate.id === threadId);
+      if (thread !== undefined) {
+        const personal = projects.find((project) => project.id === thread.projectId)?.isPersonal === true;
+        window.open(`${window.location.origin}${threadPath(thread, { isPersonal: personal })}`, "_blank", "noopener");
+        return;
+      }
+    }
     actions.open(threadId);
     closeWidget();
   };

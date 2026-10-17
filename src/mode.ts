@@ -1,7 +1,17 @@
+import { widgetRequestedByUrl } from "./embed";
 import { restoreWindow, shrinkWindow } from "./window-size";
 
 export const MODE_KEY = "bb-plugin-thread-widget:enabled";
 export const MODE_EVENT = "thread-widget-mode";
+
+// `?widget=1` (the bb Chrome Bridge side panel) starts in widget mode.
+if (widgetRequestedByUrl()) {
+  try {
+    localStorage.setItem(MODE_KEY, "1");
+  } catch {
+    // Storage blocked; the widget stays off.
+  }
+}
 
 export function widgetEnabled(): boolean {
   try {

@@ -21,6 +21,10 @@ Open a thread to read the session and reply. The composer is bb's own composer, 
 
 In an open thread, the row under the header has two buttons between the health labels and the usage meters. The panel button opens bb's right panel for the thread: info, diff and open tabs. The + button opens bb's new-tab page: terminal, files, editor, browser, side chat, document and task. The widget steps aside while the panel shows, and Back to widget at the bottom returns to it. bb has no plugin API for this panel, so the widget opens the thread underneath and presses bb's own buttons.
 
+## Chrome side panel
+
+The [bb Chrome Bridge](https://github.com/kr3t3n/bb-chrome-bridge) extension shows bb in Chrome's side panel. It opens bb with `?widget=1`, which turns widget mode on. Inside a frame the widget never resizes the window. When the parent is a Chrome extension page, the widget posts the open thread's ID and title to it, so the panel's Share this tab button knows which thread gets the tab. Open in bb opens the thread in a new browser tab there. `src/embed.ts` holds this code.
+
 ## Rail placement
 
 `src/rail-layout.ts` is the shared rail contract. Keep its source identical in

@@ -23,6 +23,8 @@ function isAppWindow(): boolean {
 
 /** Set the width; resolve the width the window had before. */
 async function setWidth(width: number): Promise<number | null> {
+  // Inside a frame, such as the Chrome side panel, the window is not ours.
+  if (window.top !== window) return null;
   const previous = window.outerWidth;
   const desktop = desktopSetWidth();
   if (desktop !== null) {
