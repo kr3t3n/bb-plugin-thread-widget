@@ -606,3 +606,67 @@ html.thread-widget-active [aria-label^="Toggle sidebar"] {
   color: var(--destructive-text, #dc2626);
   font-size: 12px;
 }
+
+/* The widget's copy of bb's question form, for agent questions. */
+.thread-widget-question {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60%;
+  overflow: auto;
+  margin: 8px 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, #3b82f6 8%, var(--background));
+  font-size: 13px;
+}
+
+.thread-widget-question fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.thread-widget-question legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.thread-widget-question-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.thread-widget-question-option:hover {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.thread-widget-question-option input {
+  margin-top: 2px;
+}
+
+.thread-widget-question-option small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.thread-widget-question textarea {
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 6px 8px;
+  font: 13px/1.35 ui-sans-serif, system-ui, sans-serif;
+}

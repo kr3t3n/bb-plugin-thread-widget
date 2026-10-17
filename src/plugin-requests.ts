@@ -138,3 +138,88 @@ export function usePluginRequests(threadId: string | null): { requests: PluginRe
   }, [threadId, tick]);
   return { requests, refresh };
 }
+
+/** One question in the widget's question form. */
+export type WidgetQuestion = {
+  id: string;
+  prompt: string;
+  multiSelect: boolean;
+  allowFreeText: boolean;
+  options: { value: string; label: string; description: string | null }[];
+};
+
+export type QuestionAnswer = { selected: string[]; freeText?: string };
+
+/**
+ * The request as questions, or null when it is not a question form. Codex
+ * questions get the same ids and option values that bb's Codex form uses,
+ * so the server reads the answers the same way.
+ */
+export function questionRequest(request: PluginRequest): WidgetQuestion[] | null {
+  const data = request.data as { questions?: unknown } | null;
+  if (data === null || typeof data !== "object" || !Array.isArray(data.questions) || data.questions.length === 0) {
+    return null;
+  }
+  if (request.pluginId === "provider-codex" && request.rendererId === "async-question") {
+    const questions: WidgetQuestion[] = [];
+    for (const [index, row] of (data.questions as { title?: unknown; options?: unknown }[]).entries()) {
+      if (typeof row?.title !== "string" || row.title.trim().length === 0) return null;
+      const options = Array.isArray(row.options) ? row.options.filter((label): label is string => typeof label === "string") : [];
+      questions.push({
+        id: `question-${index + 1}`,
+        prompt: row.title,
+        multiSelect: false,
+        allowFreeText: true,
+        options: options.map((label, optionIndex) => ({ value: `option-${optionIndex + 1}`, label, description: null })),
+      });
+    }
+    return questions;
+  }
+  if (request.pluginId === "ask-user-question" && request.rendererId === "ask-user-question") {
+    const questions: WidgetQuestion[] = [];
+    for (const row of data.questions as {
+      id?: unknown;
+      prompt?: unknown;
+      multiSelect?: unknown;
+      allowFreeText?: unknown;
+      options?: unknown;
+    }[]) {
+      if (typeof row?.id !== "string" || typeof row.prompt !== "string" || !Array.isArray(row.options)) return null;
+      questions.push({
+        id: row.id,
+        prompt: row.prompt,
+        multiSelect: row.multiSelect === true,
+        allowFreeText: row.allowFreeText === true,
+        options: (row.options as { value?: unknown; label?: unknown; description?: unknown }[])
+          .filter((option) => typeof option?.value === "string" && typeof option.label === "string")
+          .map((option) => ({
+            value: option.value as string,
+            label: option.label as string,
+            description: text(option.description),
+          })),
+      });
+    }
+    return questions;
+  }
+  return null;
+}
+
+/** The first question that has no answer yet, or null when all have one. */
+export function unansweredQuestion(
+  questions: readonly WidgetQuestion[],
+  answers: Readonly<Record<string, QuestionAnswer>>,
+): WidgetQuestion | null {
+  return (
+    questions.find((question) => {
+      const answer = answers[question.id];
+      return answer === undefined || (answer.selected.length === 0 && (answer.freeText ?? "").trim().length === 0);
+    }) ?? null
+  );
+}
+
+export function respondToQuestionRequest(
+  request: PluginRequest,
+  answers: Record<string, QuestionAnswer>,
+): Promise<void> {
+  return post(interactionUrl(request, "respond"), { value: { answers } });
+}

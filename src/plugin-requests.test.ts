@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasPluginRequest, pluginRequests, secretRequest, secretValueError } from "./plugin-requests.ts";
+import { hasPluginRequest, pluginRequests, questionRequest, secretRequest, secretValueError, unansweredQuestion } from "./plugin-requests.ts";
 
 const secretRow = {
   id: "pint_1",
@@ -43,4 +43,29 @@ test("secret values follow the secrets plugin rules", () => {
   assert.notEqual(secretValueError("a\nb"), null);
   assert.notEqual(secretValueError("a\0b"), null);
   assert.notEqual(secretValueError("x".repeat(16 * 1024 + 1)), null);
+});
+
+test("Codex questions use the ids and option values of bb's Codex form", () => {
+  const row = {
+    id: "pint_q",
+    threadId: "thr_1",
+    origin: { kind: "plugin", pluginId: "provider-codex", rendererId: "async-question" },
+    payload: { kind: "plugin", title: "2 questions", data: { questions: [{ title: "Which market?", options: ["DK", "RO"] }, { title: "Why?", options: null }] } },
+  };
+  const questions = questionRequest(pluginRequests([row])[0]!);
+  assert.deepEqual(questions?.map((q) => [q.id, q.options.map((o) => o.value), q.allowFreeText]), [
+    ["question-1", ["option-1", "option-2"], true],
+    ["question-2", [], true],
+  ]);
+  assert.equal(secretRequest(pluginRequests([row])[0]!), null);
+});
+
+test("a question counts as answered by a choice or by text", () => {
+  const questions = [
+    { id: "a", prompt: "A?", multiSelect: false, allowFreeText: true, options: [] },
+    { id: "b", prompt: "B?", multiSelect: false, allowFreeText: true, options: [] },
+  ];
+  assert.equal(unansweredQuestion(questions, { a: { selected: ["x"] } })?.id, "b");
+  assert.equal(unansweredQuestion(questions, { a: { selected: ["x"] }, b: { selected: [], freeText: " hi " } }), null);
+  assert.equal(unansweredQuestion(questions, { a: { selected: [] , freeText: "  " }, b: { selected: ["y"] } })?.id, "a");
 });

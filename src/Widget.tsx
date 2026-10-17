@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   ThreadChat,
@@ -33,7 +34,8 @@ import {
 import { useLabels, type WidgetLabel } from "./labels";
 import { useChromeInset } from "./chrome-inset";
 import { openSidePanel } from "./side-panel";
-import { secretRequest, usePluginRequests } from "./plugin-requests";
+import { questionRequest, secretRequest, usePluginRequests } from "./plugin-requests";
+import { QuestionForm } from "./QuestionForm";
 import { SecretForm } from "./SecretForm";
 import { ThreadRow } from "./ThreadRow";
 import { useUsageLimits } from "./use-usage-limits";
@@ -240,7 +242,11 @@ export function Widget() {
   const pluginRequest = pluginRequestList.length > 0;
   // A secret request renders in the widget. Other plugin forms need bb's full view.
   const secretFormRequest = pluginRequestList.find((request) => secretRequest(request) !== null) ?? null;
-  const otherPluginRequest = pluginRequestList.some((request) => secretRequest(request) === null);
+  // Agent questions also render in the widget, through its own question form.
+  const questionFormRequest = pluginRequestList.find((request) => questionRequest(request) !== null) ?? null;
+  const otherPluginRequest = pluginRequestList.some(
+    (request) => secretRequest(request) === null && questionRequest(request) === null,
+  );
 
   // The form was answered: come back to the widget on its own.
   useEffect(() => {
@@ -329,6 +335,12 @@ export function Widget() {
     historyThreadId.current = openId;
   }, [enabled, openId]);
 
+  // Hooks stay above the early return, so every render calls the same hooks.
+  const openTitle = threads.find((thread) => thread.id === openId)?.title ?? null;
+  useEffect(() => {
+    postOpenThread(openId, openTitle);
+  }, [openId, openTitle]);
+
   if (!enabled) return null;
 
   const labelId = labels?.labels.find((label) => label.slug === filters.labelSlug)?.id ?? null;
@@ -344,10 +356,6 @@ export function Widget() {
   );
   const waiting = rows.filter(needsReply).length + pinned.filter(needsReply).length;
   const open = threads.find((thread) => thread.id === openId) ?? null;
-  const openTitle = open?.title ?? null;
-  useEffect(() => {
-    postOpenThread(openId, openTitle);
-  }, [openId, openTitle]);
   const menuThread = menu === null ? null : (threads.find((thread) => thread.id === menu.id) ?? null);
 
   const openThread = (id: string) => {
@@ -460,7 +468,9 @@ export function Widget() {
     );
   };
 
-  return (
+  // Render into the page body. bb's overlay container can end up detached
+  // from the page, and then nothing the widget draws reaches the screen.
+  return createPortal(
     <div
       ref={widgetRoot}
       className={panelMode ? "thread-widget is-stepped-aside" : "thread-widget"}
@@ -631,6 +641,14 @@ export function Widget() {
               onDone={refreshRequests}
             />
           ) : null}
+          {questionFormRequest !== null ? (
+            <QuestionForm
+              key={questionFormRequest.id}
+              request={questionFormRequest}
+              questions={questionRequest(questionFormRequest)!}
+              onDone={refreshRequests}
+            />
+          ) : null}
           {otherPluginRequest ? (
             <div className="thread-widget-request" role="status">
               <span>This thread waits for a plugin form that only shows in bb's full view.</span>
@@ -669,6 +687,7 @@ export function Widget() {
           labels={labels?.labels ?? null}
         />
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }
